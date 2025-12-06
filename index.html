@@ -16,6 +16,58 @@
     <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark-reasonable.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #4d6bfe;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .setting-label {
+            font-weight: 600;
+            color: #eee;
+        }
+    </style>
 </head>
 
 <body>
@@ -175,6 +227,21 @@
                             <label>GitHub PAT Token (github_pat_...)</label>
                             <input type="password" id="github-key" class="form-input" placeholder="github_pat_...">
                         </div>
+                    </div>
+                </div>
+
+                <div class="settings-section"
+                    style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div class="setting-label">🚀 CORS Proxy Mode</div>
+                            <div class="setting-desc" style="font-size: 0.8rem; color: #888;">Enable if you see "Failed
+                                to fetch" or Network Errors.</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="proxy-mode-toggle">
+                            <span class="slider round"></span>
+                        </label>
                     </div>
                 </div>
 

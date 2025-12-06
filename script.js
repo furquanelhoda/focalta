@@ -1,6 +1,6 @@
 /**
- * TASNIM & SAID & AI - CORE ENGINE V128 (Fix: State Sanitization & Direct DOM Read)
- * Features: Mem Prompt, Knowledge Actions, Cloud Links, Robust Key Handling
+ * TASNIM & SAID & AI - CORE ENGINE V129 (Clean Reset)
+ * Features: Proxy Mode, Mem Prompt, Knowledge Actions, Robust Key Handling
  */
 
 const CONFIG = {
@@ -11,7 +11,7 @@ const CONFIG = {
     defaults: {
         system: "You are Tasnim & Said AI. Be professional, direct, and helpful. Always structure your answers clearly."
     },
-    validProviders: ['deepseek', 'github'] // Whitelist
+    validProviders: ['deepseek', 'github']
 };
 
 const STATE = {
@@ -22,6 +22,7 @@ const STATE = {
         deepseek: localStorage.getItem('key_deepseek') || '',
         github: localStorage.getItem('key_github') || ''
     },
+    use_proxy: localStorage.getItem('use_proxy') === 'true',
 
     prompt: localStorage.getItem('sys_prompt') || CONFIG.defaults.system,
     prompt_mem: localStorage.getItem('sys_prompt_mem') || '',
@@ -29,9 +30,9 @@ const STATE = {
     theme: localStorage.getItem('theme') || 'dark',
 
     history: [],
-    knowledgeFiles: [], // { name, content }
-    knowledgeLinks: [], // { url }
-    knowledgeActions: [] // { name, schema }
+    knowledgeFiles: [],
+    knowledgeLinks: [],
+    knowledgeActions: []
 };
 
 // --- MARKDOWN SETUP ---
@@ -71,6 +72,7 @@ const dom = {
     },
     promptInput: document.getElementById('system-prompt-input'),
     promptMemInput: document.getElementById('system-prompt-mem-input'),
+    proxyToggle: document.getElementById('proxy-mode-toggle'),
 
     // Knowledge
     knowledgeDrop: document.getElementById('knowledge-drop-zone'),
@@ -97,9 +99,7 @@ const dom = {
 
 // --- INITIALIZATION ---
 function init() {
-    // 1. Sanitize Provider (CRITICAL FIX for Legacy State)
     if (!CONFIG.validProviders.includes(STATE.provider)) {
-        console.warn(`Invalid provider '${STATE.provider}' detected. Resetting to 'deepseek'.`);
         STATE.provider = 'deepseek';
         STATE.model = 'deepseek-chat';
         localStorage.setItem('active_provider', 'deepseek');
@@ -110,6 +110,7 @@ function init() {
     dom.keys.github.value = STATE.keys.github;
     dom.promptInput.value = STATE.prompt;
     dom.promptMemInput.value = STATE.prompt_mem;
+    if (dom.proxyToggle) dom.proxyToggle.checked = STATE.use_proxy;
 
     applyTheme(STATE.theme);
     updateHeaderUI();
@@ -137,16 +138,10 @@ function applyTheme(theme) {
     }
 }
 
-// --- KNOWLEDGE BASE LOGIC ---
-
-// 1. Files
+// --- KNOWLEDGE BASE ---
 function handleFileUpload(files) {
     Array.from(files).forEach(file => {
-        if (file.type.startsWith('text/') ||
-            file.name.endsWith('.js') ||
-            file.name.endsWith('.py') ||
-            file.name.endsWith('.json') ||
-            file.name.endsWith('.md')) {
+        if (file.type.startsWith('text/') || file.name.endsWith('.js') || file.name.endsWith('.py') || file.name.endsWith('.json') || file.name.endsWith('.md')) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 STATE.knowledgeFiles.push({ name: file.name, content: e.target.result });
@@ -155,37 +150,24 @@ function handleFileUpload(files) {
             };
             reader.readAsText(file);
         } else {
-            notify(`Skipped ${file.name} (Binary/Unsupported)`, 'error');
+            notify(`Skipped ${file.name} (Unsupported)`, 'error');
         }
     });
 }
 
-// 2. Links
 function addLink() {
     const url = dom.knowledgeLinkInput.value.trim();
     if (!url) return;
-    try {
-        new URL(url);
-    } catch (_) {
-        notify('Invalid URL', 'error');
-        return;
-    }
     STATE.knowledgeLinks.push({ url: url });
     dom.knowledgeLinkInput.value = '';
     renderKnowledgeLists();
     notify('Link Added', 'success');
 }
 
-// 3. Actions
 function addAction() {
     const name = dom.actionName.value.trim();
     const schema = dom.actionSchema.value.trim();
-
-    if (!name || !schema) {
-        notify('Action Name and Schema required', 'error');
-        return;
-    }
-
+    if (!name || !schema) { notify('Name & Schema required', 'error'); return; }
     STATE.knowledgeActions.push({ name, schema });
     dom.actionName.value = '';
     dom.actionSchema.value = '';
@@ -193,47 +175,31 @@ function addAction() {
     notify(`Action '${name}' Added`, 'success');
 }
 
-// Render All Lists
 function renderKnowledgeLists() {
-    // Files
     dom.listFiles.innerHTML = '';
     STATE.knowledgeFiles.forEach((file, index) => {
         const div = document.createElement('div');
         div.className = 'file-item';
-        div.innerHTML = `
-            <span class="file-name"><i class="fa-solid fa-file-code"></i> ${file.name}</span>
-            <button class="remove-file" onclick="removeItem('files', ${index})"><i class="fa-solid fa-trash"></i></button>
-        `;
+        div.innerHTML = `<span class="file-name"><i class="fa-solid fa-file-code"></i> ${file.name}</span><button class="remove-file" onclick="removeItem('files', ${index})"><i class="fa-solid fa-trash"></i></button>`;
         dom.listFiles.appendChild(div);
     });
-
-    // Links
     dom.listLinks.innerHTML = '';
     STATE.knowledgeLinks.forEach((link, index) => {
         const div = document.createElement('div');
         div.className = 'file-item';
         div.style.borderColor = '#4d6bfe';
-        div.innerHTML = `
-            <span class="file-name"><i class="fa-solid fa-link" style="color: #4d6bfe"></i> ${link.url}</span>
-            <button class="remove-file" onclick="removeItem('links', ${index})"><i class="fa-solid fa-trash"></i></button>
-        `;
+        div.innerHTML = `<span class="file-name"><i class="fa-solid fa-link" style="color: #4d6bfe"></i> ${link.url}</span><button class="remove-file" onclick="removeItem('links', ${index})"><i class="fa-solid fa-trash"></i></button>`;
         dom.listLinks.appendChild(div);
     });
-
-    // Actions
     dom.listActions.innerHTML = '';
     STATE.knowledgeActions.forEach((act, index) => {
         const div = document.createElement('div');
         div.className = 'file-item';
         div.style.borderColor = '#ffd700';
-        div.innerHTML = `
-            <span class="file-name"><i class="fa-solid fa-bolt" style="color: #ffd700"></i> ${act.name}</span>
-            <button class="remove-file" onclick="removeItem('actions', ${index})"><i class="fa-solid fa-trash"></i></button>
-        `;
+        div.innerHTML = `<span class="file-name"><i class="fa-solid fa-bolt" style="color: #ffd700"></i> ${act.name}</span><button class="remove-file" onclick="removeItem('actions', ${index})"><i class="fa-solid fa-trash"></i></button>`;
         dom.listActions.appendChild(div);
     });
 }
-
 window.removeItem = function (type, index) {
     if (type === 'files') STATE.knowledgeFiles.splice(index, 1);
     if (type === 'links') STATE.knowledgeLinks.splice(index, 1);
@@ -241,50 +207,24 @@ window.removeItem = function (type, index) {
     renderKnowledgeLists();
 }
 
-// --- TAB SWITCHING ---
-document.querySelectorAll('.settings-tab').forEach(tab => {
-    tab.addEventListener('click', function () {
-        const parent = this.closest('.settings-container');
-        if (!parent) return;
-        parent.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-        parent.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-        this.classList.add('active');
-        const targetId = 'sec-' + this.dataset.tab;
-        const targetSec = document.getElementById(targetId);
-        if (targetSec) targetSec.classList.add('active');
-    });
-});
-
-
-// --- CORE MESSAGE LOGIC ---
+// --- CORE LOGIC ---
 async function sendMessage() {
     const text = dom.input.value.trim();
     if (!text) return;
 
-    // DEBUG: Ensure State is in sync with DOM (Crucial Fix)
-    // Sometimes user types key but forgets to save. We read directly.
-    if (dom.keys.deepseek.value && !STATE.keys.deepseek) {
-        STATE.keys.deepseek = dom.keys.deepseek.value.trim();
-        localStorage.setItem('key_deepseek', STATE.keys.deepseek);
-    }
-    if (dom.keys.github.value && !STATE.keys.github) {
-        STATE.keys.github = dom.keys.github.value.trim();
-        localStorage.setItem('key_github', STATE.keys.github);
-    }
+    // Sync Keys directly
+    if (dom.keys.deepseek.value) STATE.keys.deepseek = dom.keys.deepseek.value.trim();
+    if (dom.keys.github.value) STATE.keys.github = dom.keys.github.value.trim();
 
     const activeKey = STATE.keys[STATE.provider];
-
     if (!activeKey) {
-        // Detailed Error Message
-        const label = STATE.provider === 'deepseek' ? 'DeepSeek Official' : 'GitHub/Azure';
-        notify(`Missing API Key for: ${label}. Please Check Settings.`, 'error');
+        notify('Missing API Key. Check Settings.', 'error');
         dom.modalSettings.classList.remove('hidden');
         return;
     }
 
     addMessageToState('user', text);
     renderMessage('user', text, STATE.history.length - 1);
-
     dom.input.value = '';
     dom.input.style.height = 'auto';
     dom.sendBtn.disabled = true;
@@ -293,51 +233,28 @@ async function sendMessage() {
     const botContent = botContentInfo.contentDiv;
     botContent.innerHTML = '<span class="cursor">|</span>';
 
-    // *** PROMPT CONSTRUCTION ***
+    // Prompt Construction
     let finalSystemPrompt = STATE.prompt;
-
-    // TRIGGER LOGIC: MEM (11)
-    if (text.startsWith('11')) {
-        if (STATE.prompt_mem) {
-            finalSystemPrompt += "\n\n--- SECONDARY INSTRUCTION LAYER (MEM TRIGGERED) ---\n";
-            finalSystemPrompt += STATE.prompt_mem;
-            finalSystemPrompt += "\n--- END MEM LAYER ---\n";
-            notify('Mem Layer Activated ⚡', 'info');
-        }
+    if (text.startsWith('11') && STATE.prompt_mem) {
+        finalSystemPrompt += "\n\n--- SECONDARY MEM LAYER ---\n" + STATE.prompt_mem + "\n--- END MEM ---\n";
+        notify('Mem Layer Active ⚡', 'info');
     }
 
-    // Inject Files
     if (STATE.knowledgeFiles.length > 0) {
-        let block = "\n\n--- KNOWLEDGE BASE (FILES) ---\n";
-        STATE.knowledgeFiles.forEach(f => {
-            block += `FILE: ${f.name}\n${f.content}\n---\n`;
-        });
-        finalSystemPrompt += block;
+        finalSystemPrompt += "\n\n--- KNOWLEDGE FILES ---\n" + STATE.knowledgeFiles.map(f => `FILE: ${f.name}\n${f.content}\n`).join('---\n');
     }
-
-    // Inject Links
     if (STATE.knowledgeLinks.length > 0) {
-        let block = "\n\n--- KNOWLEDGE BASE (LINKS) ---\n";
-        block += "Using provided reference links:\n";
-        STATE.knowledgeLinks.forEach(l => {
-            block += `LINK: ${l.url}\n`;
-        });
-        block += "---\n";
-        finalSystemPrompt += block;
+        finalSystemPrompt += "\n\n--- KNOWLEDGE LINKS ---\n" + STATE.knowledgeLinks.map(l => `LINK: ${l.url}`).join('\n');
     }
-
-    // Inject Actions
     if (STATE.knowledgeActions.length > 0) {
-        let block = "\n\n--- AVAILABLE ACTIONS (TOOLS) ---\n";
-        block += "You have the ability to simulate or request the following actions:\n";
-        STATE.knowledgeActions.forEach(a => {
-            block += `ACTION: ${a.name}\nSCHEMA/DESC:\n${a.schema}\n---\n`;
-        });
-        finalSystemPrompt += block;
+        finalSystemPrompt += "\n\n--- ACTIONS ---\n" + STATE.knowledgeActions.map(a => `ACTION: ${a.name}\n${a.schema}\n`).join('---\n');
     }
 
     try {
-        const endpoint = CONFIG.endpoints[STATE.provider];
+        let endpoint = CONFIG.endpoints[STATE.provider];
+        if (STATE.use_proxy) {
+            endpoint = 'https://corsproxy.io/?' + encodeURIComponent(endpoint);
+        }
 
         const response = await fetch(`${endpoint}/chat/completions`, {
             method: 'POST',
@@ -357,7 +274,6 @@ async function sendMessage() {
 
         if (!response.ok) {
             const errText = await response.text();
-            if (response.status === 429) throw new Error('Rate Limit Exceeded (429).');
             throw new Error(`API Error ${response.status}: ${errText}`);
         }
 
@@ -388,81 +304,48 @@ async function sendMessage() {
         hljs.highlightAll();
 
     } catch (err) {
-        botContent.innerHTML = `<div style="color:#ff4444"><strong>Error:</strong> ${err.message}</div>`;
-        notify('Message failed: ' + err.message, 'error');
+        console.error(err);
+        let msg = err.message;
+        if (msg.includes('Failed to fetch')) {
+            msg = "Connection Failed. Try enabling 'CORS Proxy Mode' in Settings.";
+        }
+        botContent.innerHTML = `<div style="color:#ff4444; border:1px solid red; padding:10px; border-radius:5px;"><strong>Error:</strong> ${msg}</div>`;
+        notify('Message failed', 'error');
     }
 }
 
-// --- RENDERING & UTIL ---
-function addMessageToState(role, content) {
-    STATE.history.push({ role, content });
-}
-
+// --- UTILS ---
+function addMessageToState(role, content) { STATE.history.push({ role, content }); }
 function renderMessage(role, content, index) {
     const div = document.createElement('div');
     div.className = `message ${role}-message`;
     div.innerHTML = renderMessageHTML(role, content, index);
     dom.historyContainer.appendChild(div);
 }
-
 function renderBotPlaceholder() {
     const div = document.createElement('div');
     div.className = `message bot-message`;
-    div.innerHTML = `
-        <div class="avatar bot-avatar">AI</div>
-        <div class="msg-content"></div>
-    `;
+    div.innerHTML = `<div class="avatar bot-avatar">AI</div><div class="msg-content"></div>`;
     dom.historyContainer.appendChild(div);
     return { wrapperDiv: div, contentDiv: div.querySelector('.msg-content') };
 }
-
 function renderMessageHTML(role, content, index) {
     const isUser = role === 'user';
     const parsedContent = isUser ? content.replace(/\n/g, '<br>') : marked.parse(content);
-    return `
-        <div class="avatar ${isUser ? 'user-avatar' : 'bot-avatar'}">
-            ${isUser ? '<i class="fa-solid fa-user"></i>' : 'AI'}
-        </div>
-        <div style="flex:1; min-width:0;">
-            <div class="msg-content">${parsedContent}</div>
-            <div class="message-actions-row">
-                <button class="mini-btn" onclick="copyMessage(${index})"><i class="fa-regular fa-copy"></i> Copy</button>
-                ${isUser ? `<button class="mini-btn" onclick="editMessage(${index})"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
-            </div>
-        </div>
-    `;
+    return `<div class="avatar ${isUser ? 'user-avatar' : 'bot-avatar'}">${isUser ? '<i class="fa-solid fa-user"></i>' : 'AI'}</div><div style="flex:1; min-width:0;"><div class="msg-content">${parsedContent}</div><div class="message-actions-row"><button class="mini-btn" onclick="copyMessage(${index})">Copy</button>${isUser ? `<button class="mini-btn" onclick="editMessage(${index})">Edit</button>` : ''}</div></div>`;
 }
-
-window.copyText = function (id) {
-    const el = document.getElementById(id);
-    if (el) navigator.clipboard.writeText(el.innerText).then(() => notify('Code copied', 'info'));
-}
-window.copyMessage = function (index) {
-    const msg = STATE.history[index];
-    if (msg) navigator.clipboard.writeText(msg.content).then(() => notify('Message copied', 'info'));
-}
+window.copyText = function (id) { navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => notify('Code copied', 'info')); }
+window.copyMessage = function (index) { navigator.clipboard.writeText(STATE.history[index].content).then(() => notify('Copied', 'info')); }
 window.editMessage = function (index) {
-    const msg = STATE.history[index];
-    if (msg) {
-        dom.input.value = msg.content;
-        STATE.history = STATE.history.slice(0, index);
-        dom.historyContainer.innerHTML = '';
-        STATE.history.forEach((m, i) => renderMessage(m.role, m.content, i));
-        dom.input.focus();
-    }
+    dom.input.value = STATE.history[index].content;
+    STATE.history = STATE.history.slice(0, index);
+    dom.historyContainer.innerHTML = '';
+    STATE.history.forEach((m, i) => renderMessage(m.role, m.content, i));
+    dom.input.focus();
 }
 window.exportChat = function () {
-    const element = document.getElementById('chat-history');
-    const opt = {
-        margin: 0.5,
-        filename: `TASNIM_SAID_AI_Chat.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set({ margin: 0.5, filename: 'Chat.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).from(document.getElementById('chat-history')).save();
 }
-
 function notify(msg, type) {
     const t = document.createElement('div');
     t.className = 'toast';
@@ -472,12 +355,11 @@ function notify(msg, type) {
     setTimeout(() => t.remove(), 3000);
 }
 
-// --- EVENT LISTENERS ---
+// --- EVENTS ---
 dom.themeBtn.addEventListener('click', toggleTheme);
 document.getElementById('open-settings').addEventListener('click', () => dom.modalSettings.classList.remove('hidden'));
 document.getElementById('close-settings').addEventListener('click', () => dom.modalSettings.classList.add('hidden'));
 
-// Knowledge Interactions
 document.getElementById('open-knowledge').addEventListener('click', () => dom.modalKnowledge.classList.remove('hidden'));
 document.getElementById('close-knowledge').addEventListener('click', () => dom.modalKnowledge.classList.add('hidden'));
 dom.knowledgeDrop.addEventListener('click', () => dom.knowledgeInput.click());
@@ -485,33 +367,16 @@ dom.knowledgeInput.addEventListener('change', (e) => handleFileUpload(e.target.f
 dom.addLinkBtn.addEventListener('click', addLink);
 dom.addActionBtn.addEventListener('click', addAction);
 
-// Main Prompt
 document.getElementById('open-prompt').addEventListener('click', () => dom.modalPrompt.classList.remove('hidden'));
 document.getElementById('close-prompt').addEventListener('click', () => dom.modalPrompt.classList.add('hidden'));
-document.getElementById('save-prompt').addEventListener('click', () => {
-    STATE.prompt = dom.promptInput.value.trim();
-    localStorage.setItem('sys_prompt', STATE.prompt);
-    dom.modalPrompt.classList.add('hidden');
-    notify('Main Instructions Updated', 'success');
-});
-document.getElementById('clear-prompt').addEventListener('click', () => {
-    dom.promptInput.value = CONFIG.defaults.system;
-});
+document.getElementById('save-prompt').addEventListener('click', () => { STATE.prompt = dom.promptInput.value.trim(); localStorage.setItem('sys_prompt', STATE.prompt); dom.modalPrompt.classList.add('hidden'); notify('Instructions Saved', 'success'); });
+document.getElementById('clear-prompt').addEventListener('click', () => { dom.promptInput.value = CONFIG.defaults.system; });
 
-// MEM Prompt
 document.getElementById('open-prompt-mem').addEventListener('click', () => dom.modalPromptMem.classList.remove('hidden'));
 document.getElementById('close-prompt-mem').addEventListener('click', () => dom.modalPromptMem.classList.add('hidden'));
-document.getElementById('save-prompt-mem').addEventListener('click', () => {
-    STATE.prompt_mem = dom.promptMemInput.value.trim();
-    localStorage.setItem('sys_prompt_mem', STATE.prompt_mem);
-    dom.modalPromptMem.classList.add('hidden');
-    notify('Mem Layer Updated', 'success');
-});
-document.getElementById('clear-prompt-mem').addEventListener('click', () => {
-    dom.promptMemInput.value = '';
-});
+document.getElementById('save-prompt-mem').addEventListener('click', () => { STATE.prompt_mem = dom.promptMemInput.value.trim(); localStorage.setItem('sys_prompt_mem', STATE.prompt_mem); dom.modalPromptMem.classList.add('hidden'); notify('Mem Layer Saved', 'success'); });
+document.getElementById('clear-prompt-mem').addEventListener('click', () => { dom.promptMemInput.value = ''; });
 
-// Keys Save
 document.getElementById('save-config').addEventListener('click', () => {
     STATE.keys.deepseek = dom.keys.deepseek.value.trim();
     STATE.keys.github = dom.keys.github.value.trim();
@@ -521,53 +386,40 @@ document.getElementById('save-config').addEventListener('click', () => {
     notify('Keys Saved', 'success');
 });
 
-// Test Connection
+// PROXY TOGGLE
+if (dom.proxyToggle) {
+    dom.proxyToggle.addEventListener('change', (e) => {
+        STATE.use_proxy = e.target.checked;
+        localStorage.setItem('use_proxy', STATE.use_proxy);
+        notify(`Proxy Mode: ${STATE.use_proxy ? 'ON 🚀' : 'OFF'}`, 'info');
+    });
+}
+
+// TEST CONNECTION
 document.getElementById('test-config').addEventListener('click', async () => {
     const provider = STATE.provider;
     const key = dom.keys[provider].value.trim();
-    if (!key) {
-        notify('Please enter a key to test.', 'error');
-        return;
-    }
+    if (!key) { notify('Enter a key first', 'error'); return; }
 
-    notify(`Testing ${provider}...`, 'info');
+    notify('Testing...', 'info');
     try {
-        const endpoint = CONFIG.endpoints[provider];
-        // Simple 1-token request to validate key
-        const response = await fetch(`${endpoint}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${key}`
-            },
-            body: JSON.stringify({
-                model: STATE.model,
-                messages: [{ role: 'user', content: 'Hi' }],
-                max_tokens: 1
-            })
-        });
+        let endpoint = CONFIG.endpoints[provider];
+        if (STATE.use_proxy) endpoint = 'https://corsproxy.io/?' + encodeURIComponent(endpoint);
 
-        if (response.ok) {
-            notify('Connection Successful! ✅', 'success');
-        } else {
-            const err = await response.text();
-            throw new Error(`API returned ${response.status}`);
-        }
+        const res = await fetch(`${endpoint}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({ model: STATE.model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 })
+        });
+        if (res.ok) notify('Connection OK! ✅', 'success');
+        else throw new Error(res.status);
     } catch (e) {
-        console.error(e);
-        if (e.message.includes('Failed to fetch')) {
-            alert("CONNECTION ERROR (CORS)\n\nPossible causes:\n1. Invalid API Key (Most likely!)\n2. Opening file directly (file://) - Try 'start_server.bat'\n3. No Internet");
-        } else {
-            alert(`TEST FAILED: ${e.message}`);
-        }
+        alert(e.message.includes('Failed to fetch') ? "Network/CORS Error. Try enabling Proxy Mode." : "Error: " + e.message);
     }
 });
 
-// Dropdown
-document.getElementById('model-selector-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    dom.dropdown.classList.toggle('hidden');
-});
+// DROPDOWN & TAB SWITCHING
+document.getElementById('model-selector-btn').addEventListener('click', (e) => { e.stopPropagation(); dom.dropdown.classList.toggle('hidden'); });
 document.addEventListener('click', () => dom.dropdown.classList.add('hidden'));
 document.querySelectorAll('.dropdown-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -579,18 +431,20 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
         notify(`Switched to ${STATE.model}`, 'info');
     });
 });
+document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', function () {
+        const p = this.closest('.settings-container');
+        if (!p) return;
+        p.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+        p.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        this.classList.add('active');
+        const s = document.getElementById('sec-' + this.dataset.tab);
+        if (s) s.classList.add('active');
+    });
+});
 
-dom.input.addEventListener('input', function () {
-    this.style.height = 'auto';
-    this.style.height = this.scrollHeight + 'px';
-    dom.sendBtn.disabled = !this.value.trim();
-});
-dom.input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-});
+dom.input.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; dom.sendBtn.disabled = !this.value.trim(); });
+dom.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 dom.sendBtn.addEventListener('click', sendMessage);
 document.getElementById('export-btn').addEventListener('click', window.exportChat);
 document.getElementById('new-chat-action').addEventListener('click', () => location.reload());
