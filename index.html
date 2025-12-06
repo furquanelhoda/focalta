@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TASNIM & SAID & AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark-reasonable.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Prompt Editor Modal (Dedicated) -->
+    <div id="prompt-modal" class="settings-modal hidden">
+        <div class="settings-container" style="flex-direction: column; width: 600px; height: 500px;">
+            <div class="settings-header" style="margin: 20px 20px 10px;">
+                <i class="fa-solid fa-user-gear"></i> System Instructions (Main)
+            </div>
+            <div style="padding: 0 20px; color: var(--text-muted); font-size: 0.9rem;">
+                Define exactly how the AI should behave, speak, and code.
+            </div>
+
+            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%;">
+                <button id="close-prompt" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+
+                <textarea id="system-prompt-input" class="form-textarea"
+                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5;"
+                    placeholder="You are an expert..."></textarea>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button id="clear-prompt" class="save-btn" style="background: #333;">Default</button>
+                    <button id="save-prompt" class="save-btn">Activate Instructions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Prompt Modal (MEM) -->
+    <div id="prompt-mem-modal" class="settings-modal hidden">
+        <div class="settings-container" style="flex-direction: column; width: 600px; height: 500px;">
+            <div class="settings-header" style="margin: 20px 20px 10px;">
+                <i class="fa-solid fa-layer-group"></i> Instruct AI (Mem)
+            </div>
+            <div style="padding: 0 20px; color: var(--text-muted); font-size: 0.9rem;">
+                Secondary Conditional Layer. Activates ONLY when message starts with <strong>11</strong>.
+            </div>
+
+            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%;">
+                <button id="close-prompt-mem" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+
+                <textarea id="system-prompt-mem-input" class="form-textarea"
+                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5;"
+                    placeholder="This instruction layer activates when you type '11' at the start of your message..."></textarea>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button id="clear-prompt-mem" class="save-btn" style="background: #333;">Clear</button>
+                    <button id="save-prompt-mem" class="save-btn">Save Mem Layer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Knowledge Modal -->
+    <div id="knowledge-modal" class="settings-modal hidden">
+        <div class="settings-container">
+            <div class="settings-sidebar">
+                <div class="settings-tab active" data-tab="files">
+                    <i class="fa-solid fa-file-alt"></i> Documents
+                </div>
+                <div class="settings-tab" data-tab="links">
+                    <i class="fa-solid fa-link"></i> Cloud Links
+                </div>
+                <div class="settings-tab" data-tab="actions">
+                    <i class="fa-solid fa-bolt"></i> Actions
+                </div>
+            </div>
+            <div class="settings-content-area">
+                <button id="close-knowledge" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+
+                <!-- FILES TAB -->
+                <div class="settings-section active" id="sec-files">
+                    <div class="settings-header">Knowledge Base (Files)</div>
+                    <p class="tab-desc">Upload text files (.txt, .md, .js) for context.</p>
+                    <div class="knowledge-upload-area" id="knowledge-drop-zone">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Click to Upload References</p>
+                        <input type="file" id="knowledge-upload" multiple hidden>
+                    </div>
+                    <div class="knowledge-list" id="knowledge-list-files"></div>
+                </div>
+
+                <!-- LINKS TAB -->
+                <div class="settings-section" id="sec-links">
+                    <div class="settings-header">Cloud Links</div>
+                    <p class="tab-desc">Add URLs (Drive, GitHub, Docs) for reference.</p>
+                    <div class="link-import-area">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="knowledge-link-input" class="form-input" placeholder="https://..."
+                                style="flex:1;">
+                            <button id="add-link-btn" class="save-btn"
+                                style="margin-top:0; padding: 0 15px;">Add</button>
+                        </div>
+                    </div>
+                    <div class="knowledge-list" id="knowledge-list-links"></div>
+                </div>
+
+                <!-- ACTIONS TAB -->
+                <div class="settings-section" id="sec-actions">
+                    <div class="settings-header">GPT Actions</div>
+                    <p class="tab-desc">Define custom capabilities or API schemas.</p>
+
+                    <div class="form-group">
+                        <label>Action Name</label>
+                        <input type="text" id="action-name" class="form-input" placeholder="e.g. GetWeather">
+                    </div>
+                    <div class="form-group">
+                        <label>Schema / Description (JSON/Text)</label>
+                        <textarea id="action-schema" class="form-textarea"
+                            placeholder='{"type": "function", "function": { "name": "get_weather" ... }}'
+                            style="height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;"></textarea>
+                    </div>
+                    <button id="add-action-btn" class="save-btn" style="width: 100%; margin-top: 10px;">Add
+                        Action</button>
+
+                    <div class="divider"></div>
+                    <div class="knowledge-list" id="knowledge-list-actions"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (Keys Only) -->
+    <div id="settings-modal" class="settings-modal hidden">
+        <div class="settings-container">
+            <div class="settings-sidebar">
+                <div class="settings-tab active" data-tab="config">
+                    <i class="fa-solid fa-key"></i> Keys & API
+                </div>
+            </div>
+
+            <div class="settings-content-area">
+                <button id="close-settings" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+
+                <div class="settings-section active" id="sec-config">
+                    <div class="settings-header">API Configuration</div>
+
+                    <div class="provider-card active-card" id="card-deepseek">
+                        <div class="provider-title">
+                            <i class="fa-solid fa-brain" style="color: #4d6bfe;"></i>
+                            <span>DeepSeek Official</span>
+                        </div>
+                        <div class="form-group">
+                            <label>DeepSeek API Key (sk-...)</label>
+                            <input type="password" id="deepseek-key" class="form-input" placeholder="sk-...">
+                        </div>
+                    </div>
+
+                    <div class="provider-card" id="card-github" style="margin-top:20px; opacity: 0.8;">
+                        <div class="provider-title">
+                            <i class="fa-brands fa-github"></i>
+                            <span>GitHub Marketplace</span>
+                        </div>
+                        <div class="form-group">
+                            <label>GitHub PAT Token (github_pat_...)</label>
+                            <input type="password" id="github-key" class="form-input" placeholder="github_pat_...">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button id="test-config" class="save-btn" style="background: #333; flex: 1;">Test
+                        Connection</button>
+                    <button id="save-config" class="save-btn" style="flex: 2;">Save Keys</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Structure -->
+    <div class="app-container">
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="brand-header">
+                <i class="fa-solid fa-robot"></i> TASNIM & SAID
+            </div>
+
+            <button class="new-chat-btn" id="new-chat-action">
+                <i class="fa-solid fa-plus"></i> New Chat
+            </button>
+
+            <div class="sidebar-menu">
+                <div class="menu-item" id="open-prompt"
+                    style="color: var(--primary); background: rgba(77, 107, 254, 0.1);">
+                    <i class="fa-solid fa-user-gear"></i> Instruct AI
+                </div>
+                <!-- NEW MEM PROMPT BUTTON -->
+                <div class="menu-item" id="open-prompt-mem" style="color: #ffd700; background: rgba(255, 215, 0, 0.1);">
+                    <i class="fa-solid fa-layer-group"></i> Instruct AI (Mem)
+                </div>
+
+                <div class="menu-item" id="open-knowledge">
+                    <i class="fa-solid fa-book"></i> Knowledge
+                </div>
+                <div class="menu-item" id="open-settings">
+                    <i class="fa-solid fa-cog"></i> Settings
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="history-list" id="history-list">
+                <div class="history-item active">Current Session</div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-interface">
+            <header class="chat-header">
+                <div class="header-left">
+                    <div class="model-selector" id="model-selector-btn">
+                        <span class="status-dot"></span>
+                        <span id="current-model-name">DeepSeek-V3</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="model-dropdown hidden" id="model-dropdown">
+                        <div class="dropdown-header">DEEPSEEK OFFICIAL</div>
+                        <div class="dropdown-item" data-provider="deepseek" data-model="deepseek-chat">
+                            <i class="fa-solid fa-comment-dots"></i> DeepSeek Chat (V3)
+                        </div>
+                        <div class="dropdown-item" data-provider="deepseek" data-model="deepseek-coder">
+                            <i class="fa-solid fa-code"></i> DeepSeek Coder
+                        </div>
+
+                        <div class="dropdown-header">GITHUB FALLBACKS</div>
+                        <div class="dropdown-item" data-provider="github" data-model="DeepSeek-V3-0324">
+                            <i class="fa-brands fa-github"></i> DeepSeek (Azure)
+                        </div>
+                        <div class="dropdown-item" data-provider="github" data-model="gpt-4o">
+                            <i class="fa-brands fa-microsoft"></i> GPT-4o
+                        </div>
+                        <div class="dropdown-item" data-provider="github" data-model="Llama-3.1-405B-Instruct">
+                            <i class="fa-solid fa-fire"></i> Llama-3.1-405B
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button class="icon-btn" id="export-btn" title="Save Conversation">
+                        <i class="fa-solid fa-download"></i> Save Chat
+                    </button>
+                </div>
+            </header>
+
+            <div id="chat-history" class="chat-history">
+                <div class="message bot-message">
+                    <div class="avatar bot-avatar">AI</div>
+                    <div class="msg-content">
+                        <h2>Hello Tasnim & Said.</h2>
+                        <p>I am online. Type "11" at the start to trigger 'Mem' mode.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <button class="attach-btn"><i class="fa-solid fa-paperclip"></i></button>
+                    <textarea id="user-input" rows="1"
+                        placeholder="Type a message (Start with 11 for Mem Mode)..."></textarea>
+                    <button id="send-btn" class="send-btn"><i class="fa-solid fa-arrow-up"></i></button>
+                </div>
+                <div class="input-footer">
+                    TASNIM & SAID & AI - Professional Edition
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-area"></div>
+    <script src="script.js"></script>
+</body>
+
+</html>
