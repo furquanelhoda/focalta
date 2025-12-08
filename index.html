@@ -1,364 +1,633 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TASNIM & SAID & AI</title>
+    <title>TASNIM & SAID AI - النسخة المحترفة</title>
+    
+    <!-- الروابط الأساسية -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- المكتبات الخارجية -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark-reasonable.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark-reasonable.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
-        /* Toggle Switch */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
+        :root {
+            --primary: #4d6bfe;
+            --success: #10a37f;
+            --error: #ff4444;
+            --warning: #ffaa00;
+            --mem-color: #ffd700;
         }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+        
+        .modal-hidden { display: none !important; }
+        
+        .modal-show {
+            display: flex !important;
+            animation: fadeIn 0.3s ease-out;
         }
-
-        .slider {
-            position: absolute;
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        /* تحسينات إضافية */
+        .copyright-notice {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid var(--mem-color);
+        }
+        
+        .help-link {
+            color: var(--primary);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--primary);
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #333;
-            transition: .4s;
-            border-radius: 34px;
         }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked+.slider {
-            background-color: #4d6bfe;
-        }
-
-        input:checked+.slider:before {
-            transform: translateX(20px);
-        }
-
-        .setting-label {
-            font-weight: 600;
-            color: #eee;
+        
+        .help-link:hover {
+            color: var(--primary-hover);
+            border-bottom-style: solid;
         }
     </style>
 </head>
 
 <body>
-
-    <!-- Prompt Editor Modal (Dedicated) -->
-    <div id="prompt-modal" class="settings-modal hidden">
+    <!-- ===== جميع النوافذ مخفية في البداية ===== -->
+    
+    <!-- نافذة تعليمات النظام -->
+    <div id="prompt-modal" class="settings-modal modal-hidden">
         <div class="settings-container" style="flex-direction: column; width: 600px; height: 500px;">
             <div class="settings-header" style="margin: 20px 20px 10px;">
-                <i class="fa-solid fa-user-gear"></i> System Instructions (Main)
+                <i class="fa-solid fa-user-gear"></i> تعليمات النظام الأساسية
             </div>
             <div style="padding: 0 20px; color: var(--text-muted); font-size: 0.9rem;">
-                Define exactly how the AI should behave, speak, and code.
+                حدد سلوك الذكاء الاصطناعي، أسلوب الرد، وطريقة الكتابة.
             </div>
 
-            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%;">
-                <button id="close-prompt" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%; position: relative;">
+                <button type="button" id="close-prompt" class="modal-close-btn"><i class="fa-solid fa-times"></i></button>
 
                 <textarea id="system-prompt-input" class="form-textarea"
-                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5;"
-                    placeholder="You are an expert..."></textarea>
+                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5; font-size: 0.9rem; margin-top: 10px;"
+                    placeholder="أنت مساعد ذكي متطور اسمك 'تسنيم وسعيد AI'..."></textarea>
 
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                    <button id="clear-prompt" class="save-btn" style="background: #333;">Default</button>
-                    <button id="save-prompt" class="save-btn">Activate Instructions</button>
+                    <button type="button" id="clear-prompt" class="save-btn" style="background: #333;">
+                        <i class="fa-solid fa-rotate-left"></i> إعادة التعيين
+                    </button>
+                    <button type="button" id="save-prompt" class="save-btn">
+                        <i class="fa-solid fa-check"></i> حفظ التعليمات
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Secondary Prompt Modal (MEM) -->
-    <div id="prompt-mem-modal" class="settings-modal hidden">
+    <!-- نافذة تعليمات MEM -->
+    <div id="prompt-mem-modal" class="settings-modal modal-hidden">
         <div class="settings-container" style="flex-direction: column; width: 600px; height: 500px;">
             <div class="settings-header" style="margin: 20px 20px 10px;">
-                <i class="fa-solid fa-layer-group"></i> Instruct AI (Mem)
+                <i class="fa-solid fa-layer-group" style="color: var(--mem-color);"></i> تعليمات MEM المتقدمة
             </div>
             <div style="padding: 0 20px; color: var(--text-muted); font-size: 0.9rem;">
-                Secondary Conditional Layer. Activates ONLY when message starts with <strong>11</strong>.
+                الطبقة الثانوية - تنشط عند بدء الرسالة بـ <strong style="color: var(--mem-color);">11</strong>
             </div>
 
-            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%;">
-                <button id="close-prompt-mem" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+            <div class="settings-content-area" style="display: flex; flex-direction: column; height: 100%; position: relative;">
+                <button type="button" id="close-prompt-mem" class="modal-close-btn"><i class="fa-solid fa-times"></i></button>
 
                 <textarea id="system-prompt-mem-input" class="form-textarea"
-                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5;"
-                    placeholder="This instruction layer activates when you type '11' at the start of your message..."></textarea>
+                    style="flex: 1; height: 100%; font-family: 'JetBrains Mono', monospace; line-height: 1.5; font-size: 0.9rem; margin-top: 10px;"
+                    placeholder="عند تفعيل وضع MEM، كن..."></textarea>
 
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                    <button id="clear-prompt-mem" class="save-btn" style="background: #333;">Clear</button>
-                    <button id="save-prompt-mem" class="save-btn">Save Mem Layer</button>
+                    <button type="button" id="clear-prompt-mem" class="save-btn" style="background: #333;">
+                        <i class="fa-solid fa-trash"></i> مسح
+                    </button>
+                    <button type="button" id="save-prompt-mem" class="save-btn" style="background: var(--mem-color); color: #000;">
+                        <i class="fa-solid fa-save"></i> حفظ طبقة MEM
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Knowledge Modal -->
-    <div id="knowledge-modal" class="settings-modal hidden">
+    <!-- نافذة قاعدة المعرفة -->
+    <div id="knowledge-modal" class="settings-modal modal-hidden">
         <div class="settings-container">
             <div class="settings-sidebar">
                 <div class="settings-tab active" data-tab="files">
-                    <i class="fa-solid fa-file-alt"></i> Documents
+                    <i class="fa-solid fa-file-alt"></i> المستندات
                 </div>
                 <div class="settings-tab" data-tab="links">
-                    <i class="fa-solid fa-link"></i> Cloud Links
+                    <i class="fa-solid fa-link"></i> الروابط
                 </div>
                 <div class="settings-tab" data-tab="actions">
-                    <i class="fa-solid fa-bolt"></i> Actions
+                    <i class="fa-solid fa-bolt"></i> الإجراءات
                 </div>
             </div>
-            <div class="settings-content-area">
-                <button id="close-knowledge" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+            <div class="settings-content-area" style="position: relative;">
+                <button type="button" id="close-knowledge" class="modal-close-btn"><i class="fa-solid fa-times"></i></button>
 
-                <!-- FILES TAB -->
+                <!-- تبويب الملفات -->
                 <div class="settings-section active" id="sec-files">
-                    <div class="settings-header">Knowledge Base (Files)</div>
-                    <p class="tab-desc">Upload text files (.txt, .md, .js) for context.</p>
+                    <div class="settings-header">قاعدة المعرفة</div>
+                    <p class="tab-desc">ارفع ملفات نصية للاستخدام كمراجع (.txt, .md, .js, .py)</p>
+                    
                     <div class="knowledge-upload-area" id="knowledge-drop-zone">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <p>Click to Upload References</p>
+                        <p>اسحب الملفات هنا أو انقر للرفع</p>
+                        <small style="color: var(--text-muted);">الحد الأقصى: 5MB لكل ملف</small>
                         <input type="file" id="knowledge-upload" multiple hidden>
                     </div>
+                    
                     <div class="knowledge-list" id="knowledge-list-files"></div>
                 </div>
 
-                <!-- LINKS TAB -->
+                <!-- تبويب الروابط -->
                 <div class="settings-section" id="sec-links">
-                    <div class="settings-header">Cloud Links</div>
-                    <p class="tab-desc">Add URLs (Drive, GitHub, Docs) for reference.</p>
+                    <div class="settings-header">الروابط المرجعية</div>
+                    <p class="tab-desc">أضف روابط خارجية كمراجع للذكاء الاصطناعي</p>
+                    
                     <div class="link-import-area">
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="knowledge-link-input" class="form-input" placeholder="https://..."
-                                style="flex:1;">
-                            <button id="add-link-btn" class="save-btn"
-                                style="margin-top:0; padding: 0 15px;">Add</button>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="text" id="knowledge-link-input" class="form-input" 
+                                   placeholder="https://example.com/documentation"
+                                   style="flex:1;">
+                            <button type="button" id="add-link-btn" class="save-btn" style="margin-top:0; padding: 0 15px;">
+                                <i class="fa-solid fa-plus"></i> إضافة
+                            </button>
                         </div>
                     </div>
+                    
                     <div class="knowledge-list" id="knowledge-list-links"></div>
                 </div>
 
-                <!-- ACTIONS TAB -->
+                <!-- تبويب الإجراءات -->
                 <div class="settings-section" id="sec-actions">
-                    <div class="settings-header">GPT Actions</div>
-                    <p class="tab-desc">Define custom capabilities or API schemas.</p>
+                    <div class="settings-header">الإجراءات المخصصة</div>
+                    <p class="tab-desc">حدد إجراءات خاصة يمكن للذكاء الاصطناعي تنفيذها</p>
 
                     <div class="form-group">
-                        <label>Action Name</label>
-                        <input type="text" id="action-name" class="form-input" placeholder="e.g. GetWeather">
+                        <label><i class="fa-solid fa-tag"></i> اسم الإجراء</label>
+                        <input type="text" id="action-name" class="form-input" placeholder="مثال: جلب_طقس_المدينة">
                     </div>
                     <div class="form-group">
-                        <label>Schema / Description (JSON/Text)</label>
+                        <label><i class="fa-solid fa-code"></i> المخطط / الوصف</label>
                         <textarea id="action-schema" class="form-textarea"
-                            placeholder='{"type": "function", "function": { "name": "get_weather" ... }}'
+                            placeholder='{
+  "type": "function",
+  "function": {
+    "name": "get_weather",
+    "description": "جلب حالة الطقس لمدينة معينة",
+    "parameters": {...}
+  }
+}'
                             style="height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;"></textarea>
                     </div>
-                    <button id="add-action-btn" class="save-btn" style="width: 100%; margin-top: 10px;">Add
-                        Action</button>
+                    <button type="button" id="add-action-btn" class="save-btn" style="width: 100%; margin-top: 10px;">
+                        <i class="fa-solid fa-plus-circle"></i> إضافة إجراء جديد
+                    </button>
 
                     <div class="divider"></div>
                     <div class="knowledge-list" id="knowledge-list-actions"></div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <!-- Settings Modal (Keys Only) -->
-    <div id="settings-modal" class="settings-modal hidden">
+    <!-- نافذة الإعدادات الرئيسية -->
+    <div id="settings-modal" class="settings-modal modal-hidden">
         <div class="settings-container">
             <div class="settings-sidebar">
                 <div class="settings-tab active" data-tab="config">
-                    <i class="fa-solid fa-key"></i> Keys & API
+                    <i class="fa-solid fa-key"></i> المفاتيح والـ API
+                </div>
+                <div class="settings-tab" data-tab="network">
+                    <i class="fa-solid fa-server"></i> إعدادات الشبكة
+                </div>
+                <div class="settings-tab" data-tab="appearance">
+                    <i class="fa-solid fa-palette"></i> المظهر
                 </div>
             </div>
 
-            <div class="settings-content-area">
-                <button id="close-settings" class="close-modal-btn"><i class="fa-solid fa-times"></i></button>
+            <div class="settings-content-area" style="position: relative;">
+                <button type="button" id="close-settings" class="modal-close-btn"><i class="fa-solid fa-times"></i></button>
 
+                <!-- تبويب المفاتيح والـ API -->
                 <div class="settings-section active" id="sec-config">
-                    <div class="settings-header">API Configuration</div>
+                    <div class="settings-header">
+                        <i class="fa-solid fa-key"></i> إعدادات API
+                    </div>
 
+                    <div class="copyright-notice">
+                        <i class="fa-solid fa-copyright"></i> 
+                        <strong>جميع الحقوق محفوظة © 2024 Focalta AI</strong>
+                        <p style="margin-top: 5px; font-size: 0.85rem;">هذا المشروع مخصص للاستخدام الشخصي والتعليمي فقط.</p>
+                    </div>
+
+                    <!-- مزود DeepSeek -->
                     <div class="provider-card active-card" id="card-deepseek">
                         <div class="provider-title">
-                            <i class="fa-solid fa-brain" style="color: #4d6bfe;"></i>
-                            <span>DeepSeek Official</span>
+                            <i class="fa-solid fa-brain" style="color: var(--primary);"></i>
+                            <span>DeepSeek المدفوع</span>
+                            <span class="help-link" onclick="openHelp('deepseek')">(مساعدة)</span>
                         </div>
                         <div class="form-group">
-                            <label>DeepSeek API Key (sk-...)</label>
-                            <input type="password" id="deepseek-key" class="form-input" placeholder="sk-...">
+                            <label><i class="fa-solid fa-key"></i> مفتاح DeepSeek API</label>
+                            <input type="password" id="deepseek-key" class="form-input" 
+                                   placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                   autocomplete="off">
+                            <div class="form-hint">مفتاح يبدأ بـ sk- من حساب DeepSeek المدفوع</div>
                         </div>
                     </div>
 
-                    <div class="provider-card" id="card-github" style="margin-top:20px; opacity: 0.8;">
+                    <!-- مزود GitHub -->
+                    <div class="provider-card" id="card-github" style="margin-top: 20px;">
                         <div class="provider-title">
                             <i class="fa-brands fa-github"></i>
-                            <span>GitHub Marketplace</span>
+                            <span>GitHub Marketplace (مستحسن)</span>
+                            <span class="help-link" onclick="openHelp('github')">(مساعدة)</span>
                         </div>
                         <div class="form-group">
-                            <label>GitHub PAT Token (github_pat_...)</label>
-                            <input type="password" id="github-key" class="form-input" placeholder="github_pat_...">
+                            <label><i class="fa-solid fa-token"></i> GitHub Personal Access Token</label>
+                            <input type="password" id="github-key" class="form-input" 
+                                   placeholder="github_pat_... أو ghp_..."
+                                   autocomplete="off">
+                            <div class="form-hint">PAT مع صلاحيات repo و read:packages</div>
                         </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button type="button" id="test-config" class="save-btn" style="background: #333; flex: 1;">
+                            <i class="fa-solid fa-bolt"></i> اختبار الاتصال
+                        </button>
+                        <button type="button" id="save-config" class="save-btn" style="flex: 2;">
+                            <i class="fa-solid fa-floppy-disk"></i> حفظ المفاتيح
+                        </button>
                     </div>
                 </div>
 
-                <div class="settings-section"
-                    style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div>
-                            <div class="setting-label">🚀 CORS Proxy Mode</div>
-                            <div class="setting-desc" style="font-size: 0.8rem; color: #888;">Enable if you see "Failed
-                                to fetch" or Network Errors.</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="proxy-mode-toggle">
-                            <span class="slider round"></span>
-                        </label>
+                <!-- تبويب إعدادات الشبكة -->
+                <div class="settings-section" id="sec-network">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-server"></i> إعدادات الشبكة والبروكسي
                     </div>
+                    
+                    <div style="padding: 20px; background: rgba(0,0,0,0.1); border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div>
+                                <div class="setting-label">🌐 وضع البروكسي</div>
+                                <div class="setting-desc">ضروري للعمل على GitHub Pages</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="proxy-mode-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <div id="proxy-status" style="font-size: 0.85rem; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-top: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="status-dot testing"></div>
+                                <span id="active-proxy-info">جاري البحث عن أفضل بروكسي...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-network-wired"></i> نوع خدمة البروكسي</label>
+                        <select id="proxy-type-select" class="form-input">
+                            <option value="auto">🔍 تلقائي (يختار الأفضل)</option>
+                            <option value="corsproxy">🛡️ CORS Proxy (الأساسي)</option>
+                            <option value="allorigins">🌐 AllOrigins Proxy</option>
+                            <option value="thingproxy">⚡ ThingProxy</option>
+                            <option value="corsanywhere">🔄 CORS Anywhere</option>
+                        </select>
+                        <div class="form-hint">اختر "تلقائي" للنتائج الأفضل</div>
+                    </div>
+                    
+                    <div id="proxy-test-results" style="display: none; margin-top: 20px;">
+                        <div class="setting-label">📊 نتائج اختبار البروكسيات</div>
+                        <div id="proxy-results-list" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                    
+                    <button type="button" id="test-all-proxies" class="save-btn" style="width: 100%; margin-top: 15px;">
+                        <i class="fa-solid fa-satellite-dish"></i> اختبار جميع البروكسيات
+                    </button>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button id="test-config" class="save-btn" style="background: #333; flex: 1;">Test
-                        Connection</button>
-                    <button id="save-config" class="save-btn" style="flex: 2;">Save Keys</button>
+                <!-- تبويب المظهر -->
+                <div class="settings-section" id="sec-appearance">
+                    <div class="settings-header">
+                        <i class="fa-solid fa-palette"></i> إعدادات المظهر
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-moon"></i> الوضع المظلم / الفاتح</label>
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <button type="button" id="theme-dark" class="theme-btn active">
+                                <i class="fa-solid fa-moon"></i> مظلم
+                            </button>
+                            <button type="button" id="theme-light" class="theme-btn">
+                                <i class="fa-solid fa-sun"></i> فاتح
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-font"></i> حجم الخط</label>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" data-size="small" class="size-btn">صغير</button>
+                            <button type="button" data-size="medium" class="size-btn active">متوسط</button>
+                            <button type="button" data-size="large" class="size-btn">كبير</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-border-all"></i> كثافة الرسائل</label>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" data-density="compact" class="density-btn">مضغوط</button>
+                            <button type="button" data-density="normal" class="density-btn active">عادي</button>
+                            <button type="button" data-density="spacious" class="density-btn">فسيح</button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="reset-appearance" class="save-btn" style="background: #333; width: 100%; margin-top: 20px;">
+                        <i class="fa-solid fa-rotate-left"></i> إعادة تعيين المظهر
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main App Structure -->
-    <div class="app-container">
+    <!-- نافذة المساعدة -->
+    <div id="help-modal" class="settings-modal modal-hidden">
+        <div class="settings-container" style="width: 700px; height: 600px;">
+            <button type="button" id="close-help" class="modal-close-btn"><i class="fa-solid fa-times"></i></button>
+            
+            <div class="settings-content-area">
+                <div class="settings-header">
+                    <i class="fa-solid fa-circle-question"></i> دليل الإعدادات الكامل
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3><i class="fa-solid fa-key"></i> كيفية الحصول على المفاتيح:</h3>
+                    
+                    <div class="help-section">
+                        <h4>🔹 GitHub Marketplace:</h4>
+                        <ol>
+                            <li>اذهب إلى <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--primary);">GitHub Tokens</a></li>
+                            <li>انقر على "Generate new token (classic)"</li>
+                            <li>أعط الصلاحيات: <code>repo</code>, <code>read:packages</code></li>
+                            <li>انسخ التوكن الذي يبدأ بـ <code>ghp_</code></li>
+                            <li>الصقه في حقل GitHub في الإعدادات</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>🔹 DeepSeek المدفوع:</h4>
+                        <ol>
+                            <li>سجّل في <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color: var(--primary);">DeepSeek Platform</a></li>
+                            <li>انقر على "Create API Key"</li>
+                            <li>انسخ المفتاح الذي يبدأ بـ <code>sk-</code></li>
+                            <li>الصقه في حقل DeepSeek في الإعدادات</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>⚡ نصائح استكشاف الأخطاء:</h4>
+                        <ul>
+                            <li>إذا ظهر خطأ "unknown_model": غيّر النموذج من القائمة المنسدلة</li>
+                            <li>إذا فشل الاتصال: فعّل "وضع البروكسي" في إعدادات الشبكة</li>
+                            <li>للتأكد من عمل البروكسي: اضغط على "اختبار جميع البروكسيات"</li>
+                            <li>للمشاكل المستمرة: جرب مفتاح GitHub + وضع البروكسي</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="copyright-notice">
+                        <h4><i class="fa-solid fa-copyright"></i> حقوق الملكية:</h4>
+                        <p><strong>جميع الحقوق محفوظة © 2024 Focalta AI</strong></p>
+                        <p>هذا المشروع مخصص للاستخدام الشخصي والتعليمي فقط.</p>
+                        <p>يمنع التوزيع التجاري أو البيع دون إذن كتابي.</p>
+                    </div>
+                </div>
+                
+                <button type="button" onclick="modalManager.openModal('settings-modal')" 
+                        class="save-btn" style="margin-top: 20px;">
+                    <i class="fa-solid fa-gear"></i> الذهاب إلى الإعدادات
+                </button>
+            </div>
+        </div>
+    </div>
 
-        <!-- Sidebar -->
+    <!-- ===== الهيكل الرئيسي للتطبيق ===== -->
+    <div class="app-container">
+        <!-- الشريط الجانبي -->
         <div class="sidebar">
             <div class="brand-header">
-                <i class="fa-solid fa-robot"></i> TASNIM & SAID
+                <div class="logo">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>تسنيم & سعيد AI</span>
+                </div>
+                <div class="version">v4.3</div>
             </div>
 
-            <button class="new-chat-btn" id="new-chat-action">
-                <i class="fa-solid fa-plus"></i> New Chat
+            <button type="button" class="new-chat-btn" id="new-chat-action">
+                <i class="fa-solid fa-plus"></i> بدء محادثة جديدة
             </button>
 
             <div class="sidebar-menu">
-                <div class="menu-item" id="open-prompt"
-                    style="color: var(--primary); background: rgba(77, 107, 254, 0.1);">
-                    <i class="fa-solid fa-user-gear"></i> Instruct AI
-                </div>
-                <!-- NEW MEM PROMPT BUTTON -->
-                <div class="menu-item" id="open-prompt-mem" style="color: #ffd700; background: rgba(255, 215, 0, 0.1);">
-                    <i class="fa-solid fa-layer-group"></i> Instruct AI (Mem)
-                </div>
-
-                <div class="menu-item" id="open-knowledge">
-                    <i class="fa-solid fa-book"></i> Knowledge
-                </div>
-                <div class="menu-item" id="open-settings">
-                    <i class="fa-solid fa-cog"></i> Settings
-                </div>
+                <button type="button" class="menu-item" id="open-prompt">
+                    <i class="fa-solid fa-user-gear"></i> تعليمات الذكاء
+                </button>
+                <button type="button" class="menu-item" id="open-prompt-mem">
+                    <i class="fa-solid fa-layer-group" style="color: var(--mem-color);"></i> وضع MEM
+                </button>
+                <button type="button" class="menu-item" id="open-knowledge">
+                    <i class="fa-solid fa-book"></i> قاعدة المعرفة
+                </button>
+                <button type="button" class="menu-item" id="open-settings">
+                    <i class="fa-solid fa-cog"></i> الإعدادات
+                </button>
+                <button type="button" class="menu-item" id="open-help">
+                    <i class="fa-solid fa-circle-question"></i> دليل الإعدادات
+                </button>
             </div>
 
             <div class="divider"></div>
 
-            <div class="history-list" id="history-list">
-                <div class="history-item active">Current Session</div>
+            <div class="history-section">
+                <div class="section-title">
+                    <i class="fa-solid fa-clock-rotate-left"></i> المحادثات الحديثة
+                </div>
+                <div class="history-list" id="history-list"></div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="connection-status-mini" id="connection-status-mini">
+                    <div class="status-dot disconnected"></div>
+                    <span>غير متصل</span>
+                </div>
+                <div class="footer-text">
+                    <i class="fa-solid fa-copyright"></i> Focalta AI 2024
+                </div>
             </div>
         </div>
 
-        <!-- Chat Area -->
+        <!-- منطقة المحادثة -->
         <div class="chat-interface">
+            <!-- رأس المحادثة -->
             <header class="chat-header">
                 <div class="header-left">
+                    <div class="connection-status" id="connection-status">
+                        <div class="status-dot disconnected"></div>
+                        <span id="status-text">جاهز للاتصال</span>
+                    </div>
+                    
                     <div class="model-selector" id="model-selector-btn">
-                        <span class="status-dot"></span>
-                        <span id="current-model-name">DeepSeek-V3</span>
+                        <div class="model-info">
+                            <i class="fa-brands fa-github"></i>
+                            <span id="current-model-name">DeepSeek-Chat</span>
+                        </div>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
+                    
                     <div class="model-dropdown hidden" id="model-dropdown">
-                        <div class="dropdown-header">DEEPSEEK OFFICIAL</div>
+                        <div class="dropdown-header">
+                            <i class="fa-brands fa-github"></i> GitHub Marketplace
+                        </div>
+                        <div class="dropdown-item" data-provider="github" data-model="deepseek/deepseek-chat">
+                            <i class="fa-solid fa-comment-dots"></i> DeepSeek Chat
+                        </div>
+                        <div class="dropdown-item" data-provider="github" data-model="gpt-4o">
+                            <i class="fa-brands fa-microsoft"></i> GPT-4o (Azure)
+                        </div>
+                        <div class="dropdown-item" data-provider="github" data-model="claude-3-5-sonnet">
+                            <i class="fa-solid fa-cloud"></i> Claude 3.5 Sonnet
+                        </div>
+                        
+                        <div class="dropdown-header">
+                            <i class="fa-solid fa-brain"></i> DeepSeek Official
+                        </div>
                         <div class="dropdown-item" data-provider="deepseek" data-model="deepseek-chat">
-                            <i class="fa-solid fa-comment-dots"></i> DeepSeek Chat (V3)
+                            <i class="fa-solid fa-rocket"></i> DeepSeek Chat (V3)
                         </div>
                         <div class="dropdown-item" data-provider="deepseek" data-model="deepseek-coder">
                             <i class="fa-solid fa-code"></i> DeepSeek Coder
-                        </div>
-
-                        <div class="dropdown-header">GITHUB FALLBACKS</div>
-                        <div class="dropdown-item" data-provider="github" data-model="DeepSeek-V3-0324">
-                            <i class="fa-brands fa-github"></i> DeepSeek (Azure)
-                        </div>
-                        <div class="dropdown-item" data-provider="github" data-model="gpt-4o">
-                            <i class="fa-brands fa-microsoft"></i> GPT-4o
-                        </div>
-                        <div class="dropdown-item" data-provider="github" data-model="Llama-3.1-405B-Instruct">
-                            <i class="fa-solid fa-fire"></i> Llama-3.1-405B
                         </div>
                     </div>
                 </div>
 
                 <div class="header-right">
-                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme">
+                    <button type="button" class="icon-btn" id="clear-chat" title="مسح المحادثة">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <button type="button" class="icon-btn" id="theme-toggle" title="تبديل السمة">
                         <i class="fa-solid fa-moon"></i>
                     </button>
-                    <button class="icon-btn" id="export-btn" title="Save Conversation">
-                        <i class="fa-solid fa-download"></i> Save Chat
+                    <button type="button" class="icon-btn" id="export-btn" title="تصدير المحادثة">
+                        <i class="fa-solid fa-download"></i>
                     </button>
                 </div>
             </header>
 
+            <!-- تاريخ المحادثة -->
             <div id="chat-history" class="chat-history">
-                <div class="message bot-message">
-                    <div class="avatar bot-avatar">AI</div>
-                    <div class="msg-content">
-                        <h2>Hello Tasnim & Said.</h2>
-                        <p>I am online. Type "11" at the start to trigger 'Mem' mode.</p>
+                <div class="welcome-message">
+                    <div class="message bot-message">
+                        <div class="avatar bot-avatar">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div class="msg-content">
+                            <h2>🚀 مرحباً بك في تسنيم & سعيد AI - الإصدار 4.3</h2>
+                            <p>أنا مساعد ذكي متطور، جاهز للإجابة على جميع استفساراتك.</p>
+                            
+                            <div class="features-grid">
+                                <div class="feature">
+                                    <i class="fa-solid fa-bolt" style="color: var(--mem-color);"></i>
+                                    <h4>وضع MEM</h4>
+                                    <p>ابدأ رسالتك بـ <code>11</code> لتفعيل الطبقة المتقدمة</p>
+                                </div>
+                                <div class="feature">
+                                    <i class="fa-solid fa-book" style="color: var(--primary);"></i>
+                                    <h4>قاعدة المعرفة</h4>
+                                    <p>ارفع ملفاتك وأضف روابط كمراجع</p>
+                                </div>
+                                <div class="feature">
+                                    <i class="fa-solid fa-code" style="color: var(--success);"></i>
+                                    <h4>كتابة الأكواد</h4>
+                                    <p>أكتب أكواد برمجية مع شرح مفصل</p>
+                                </div>
+                                <div class="feature">
+                                    <i class="fa-solid fa-globe" style="color: var(--warning);"></i>
+                                    <h4>عمل على GitHub Pages</h4>
+                                    <p>مدعوم بالكامل مع بروكسي ذكي</p>
+                                </div>
+                            </div>
+                            
+                            <div class="quick-start">
+                                <h4><i class="fa-solid fa-rocket"></i> للبدء السريع:</h4>
+                                <ol>
+                                    <li>اذهب إلى <strong>الإعدادات</strong> ← أدخل مفتاح API</li>
+                                    <li>اضغط <strong>اختبار الاتصال</strong> للتأكد</li>
+                                    <li>ابدأ الكتابة في المربع أدناه!</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="copyright-notice" style="margin-top: 20px;">
+                                <p><i class="fa-solid fa-copyright"></i> <strong>جميع الحقوق محفوظة © 2024 Focalta AI</strong></p>
+                                <p>هذا المشروع مخصص للاستخدام الشخصي والتعليمي فقط.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- منطقة الإدخال -->
             <div class="input-area">
                 <div class="input-wrapper">
-                    <button class="attach-btn"><i class="fa-solid fa-paperclip"></i></button>
-                    <textarea id="user-input" rows="1"
-                        placeholder="Type a message (Start with 11 for Mem Mode)..."></textarea>
-                    <button id="send-btn" class="send-btn"><i class="fa-solid fa-arrow-up"></i></button>
+                    <button type="button" class="attach-btn" id="attach-btn" title="إرفاق ملف">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <textarea id="user-input" rows="1" placeholder="اكتب رسالتك هنا... (ابدأ بـ 11 لوضع MEM)"></textarea>
+                    <div class="input-controls">
+                        <button type="button" class="format-btn" title="تنسيق النص">
+                            <i class="fa-solid fa-bold"></i>
+                        </button>
+                        <button type="button" class="format-btn" title="إدراج كود">
+                            <i class="fa-solid fa-code"></i>
+                        </button>
+                        <button type="button" id="send-btn" class="send-btn" title="إرسال">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="input-footer">
-                    TASNIM & SAID & AI - Professional Edition
+                    <div class="footer-info">
+                        <span><i class="fa-solid fa-keyboard"></i> Shift+Enter للسطر الجديد</span>
+                        <span><i class="fa-solid fa-bolt"></i> Enter للإرسال</span>
+                    </div>
+                    <div class="footer-status">
+                        <span id="typing-status"></span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- منطقة الإشعارات -->
     <div id="notification-area"></div>
+
+    <!-- ملفات JavaScript -->
     <script src="script.js"></script>
 </body>
-
 </html>
